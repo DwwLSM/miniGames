@@ -59,8 +59,8 @@ const Games = {
         return this._size
     },
     set size(v) {
-        this._size = v
-        this.size2 = v*v
+        this._size = +v
+        this.size2 = this._size*this._size
     },
     size2: this._size*this._size,
     onBtnClick(i) {
@@ -152,7 +152,7 @@ const Games = {
 
             toggle(index);
 
-            const row = Math.floor(index / size);
+            const row = ~~(index / size);
             const col = index % size;
             const neighbors = [
                 index - size, 
