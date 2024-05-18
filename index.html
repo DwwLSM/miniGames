@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Digital Huarong Road</title>
+<style>
+  #UI input, #UI button{
+    height: 40px;
+  }
+  #grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(10vw, 1fr));
+    gap: 2px;
+    width: 80vw;
+    margin: auto;
+  }
+  #grid button {
+    background-color: #ccd; /* Default color, can be changed */
+    cursor: pointer; /* Changes cursor to pointer on hover */
+    aspect-ratio: 1 / 1; /* Ensures the button is always square */
+  }
+  #grid .empty {
+    background-color: #808080; /* Gray for empty slots in DHR */
+  }
+  #grid .on {
+    background-color: #ffd700; /* Gold for "on" lights */
+  }
+  #grid .off {
+    background-color: #ccd; /* Light grey for "off" lights */
+  }
+  #grid .empty.on {
+    background-color: #cc9330; /* Khaki for empty "on" slots */
+  }
+  #grid .empty.off {
+    background-color: #808080; /* Grey for empty "off" slots */
+  }
+  #DHR, #shuffleGrid{
+    background-color: #0f0;
+  }
+</style>
+</head>
+<body>
+<div id="UI">
+<input type="number" id="size" placeholder="Enter grid size" value="4" onchange="Games.size=this.value">
+<button id="startGame" onclick="Games.createGrid();Games.shuffle&&Games.shuffleGrid();">Start Game</button>
+<button onclick="btn(this)" id="shuffleGrid">shuffleGrid</button>
+<button onclick="btn(this)" id="DHR">DHR</button>
+<button onclick="btn(this)" id="LightsOut">LightsOut</button>
+</div><br><br>
+<div id="grid"></div>
+
+<script>
+const Games = {
+    shuffle: true,
+    playing: ['DHR'],
+    _size: 4,
+    get size() {
+        return this._size
+    },
+    set size(v) {
+        this._size = v
+        this.size2 = v*v
+    },
+    size2: this._size*this._size,
+    onBtnClick(i) {
+        let res=0
+        for (const game of this.playing) 
+            res|=Games[game].onBtnClick(i)
+        return res
+    },
+    createGrid(size=this.size){
+        const grid = document.getElementById('grid');
+            grid.style.gridTemplateColumns = `repeat(${size}, 1fr)`;
+            grid.innerHTML = '';
+            this.size = size;
+            for (let i=0; i<Games.size2; i++) {
+                const button = document.createElement('button'); 
+                button.id = 'btn-' + i;
+                button.textContent = i+1;
+                button.onclick = ()=>this.onBtnClick(i)
+                grid.appendChild(button);
+                for (const game of this.playing) 
+                    Games[game].eachGrid(i, button)
+            }
+            for (const game of this.playing) 
+                Games[game].afterCreateGrid()
+    },
+    shuffleGrid(size=this.size) {
+        if (Games.playing.length > 0) for (
+            let i=0, end=10*this.size2; 
+            i<end; 
+            i+=this.onBtnClick(~~(Math.random()*this.size2))
+        );
+    },
+    DHR: {
+        emptyIndex: -1,
+        onBtnClick(index) {
+
+            if (index === this.emptyIndex) return 0
+
+            const size = Games.size;
+            const rowEmpty = Math.floor(this.emptyIndex / size);
+            const rowClicked = Math.floor(index / size);
+            const colEmpty = this.emptyIndex % size;
+            const colClicked = index % size;
+
+            const isSameRow = rowClicked === rowEmpty;
+            const isSameCol = colClicked === colEmpty;
+            const isAdjacent = Math.abs(rowClicked - rowEmpty) + Math.abs(colClicked - colEmpty) == 1;
+
+            if (!isSameRow && !isSameCol) return 0;
+            if (isAdjacent) {
+                const emptyButton = document.getElementById('btn-' + this.emptyIndex);
+                const clickedButton = document.getElementById('btn-' + index);
+
+                emptyButton.innerHTML = clickedButton.innerHTML;
+                emptyButton.classList.remove('empty');
+                clickedButton.innerHTML = '';
+                clickedButton.classList.add('empty');
+
+                this.emptyIndex = index;
+                return 1;
+            } else {
+                const direction = isSameRow ? ((colClicked < colEmpty) ? 1 : -1) : ((rowClicked < rowEmpty) ? size : -size);
+                const nextIndex = this.emptyIndex - direction;
+                this.onBtnClick(nextIndex);
+                this.onBtnClick(index);
+                return 1;
+            }
+        },
+        eachGrid(i, button) {
+            if (i === Games.size2-1) {
+                button.textContent = '';
+                button.classList.add('empty');
+            }
+        },
+        afterCreateGrid() {
+            Games.DHR.emptyIndex = Games.size2-1;
+        },
+    },
+    LightsOut: {
+        onBtnClick(index) {
+            const size = Games.size;
+            const toggle = (idx) => {
+                const button = document.getElementById('btn-' + idx);
+                if (button) { // Check if button is not "empty" in DHR
+                    button.classList.toggle('on');
+                    button.classList.toggle('off');
+                }
+            };
+
+            // Toggle the clicked button
+            toggle(index);
+
+            // Calculate index positions for neighbors
+            const row = Math.floor(index / size);
+            const col = index % size;
+            const neighbors = [
+                index - size, // above
+                index + size, // below
+                col > 0 ? index - 1 : null, // left
+                col < size - 1 ? index + 1 : null, // right
+            ];
+
+            // Toggle neighbors
+            neighbors.forEach(idx => {
+                if (idx !== null) toggle(idx);
+            });
+
+            return 1; // Indicate a successful toggle
+        },
+        eachGrid(i, button) {button.classList.add('off')},
+        afterCreateGrid() {},
+    },
+};
+
+function btn(e) {
+    if (e.id === 'shuffleGrid') {
+        Games.shuffle=!Games.shuffle
+        e.style.background = Games.shuffle?"#0f0":"gray"
+        return
+    }
+    if (Games.playing.includes(e.id)) {
+        e.style.background = 'gray'
+        Games.playing = Games.playing.filter(g=>g!==e.id)
+    }else {
+        e.style.background = '#0f0'
+        Games.playing.push(e.id)
+    }
+}
+</script>
+
+</body>
+</html>
