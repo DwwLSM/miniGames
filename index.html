@@ -16,24 +16,24 @@
     margin: auto;
   }
   #grid button {
-    background-color: #ccd;
-    cursor: pointer;
-    aspect-ratio: 1 / 1; 
+    background-color: #ccd; /* Default color, can be changed */
+    cursor: pointer; /* Changes cursor to pointer on hover */
+    aspect-ratio: 1 / 1; /* Ensures the button is always square */
   }
   #grid .empty {
-    background-color: #808080; 
+    background-color: #808080; /* Gray for empty slots in DHR */
   }
   #grid .on {
-    background-color: #ffd700; 
+    background-color: #ffd700; /* Gold for "on" lights */
   }
   #grid .off {
-    background-color: #ccd; 
+    background-color: #ccd; /* Light grey for "off" lights */
   }
   #grid .empty.on {
-    background-color: #cc9330; 
+    background-color: #cc9330; /* Khaki for empty "on" slots */
   }
   #grid .empty.off {
-    background-color: #808080; 
+    background-color: #808080; /* Grey for empty "off" slots */
   }
   #DHR, #shuffleGrid{
     background-color: #0f0;
@@ -59,8 +59,8 @@ const Games = {
         return this._size
     },
     set size(v) {
-        this._size = +v
-        this.size2 = this._size*this._size
+        this._size = v
+        this.size2 = v*v
     },
     size2: this._size*this._size,
     onBtnClick(i) {
@@ -144,28 +144,31 @@ const Games = {
             const size = Games.size;
             const toggle = (idx) => {
                 const button = document.getElementById('btn-' + idx);
-                if (button) {
+                if (button) { // Check if button is not "empty" in DHR
                     button.classList.toggle('on');
                     button.classList.toggle('off');
                 }
             };
 
+            // Toggle the clicked button
             toggle(index);
 
-            const row = ~~(index / size);
+            // Calculate index positions for neighbors
+            const row = Math.floor(index / size);
             const col = index % size;
             const neighbors = [
-                index - size, 
-                index + size, 
-                col > 0 ? index - 1 : null, 
-                col < size - 1 ? index + 1 : null, 
+                index - size, // above
+                index + size, // below
+                col > 0 ? index - 1 : null, // left
+                col < size - 1 ? index + 1 : null, // right
             ];
 
+            // Toggle neighbors
             neighbors.forEach(idx => {
                 if (idx !== null) toggle(idx);
             });
 
-            return 1;
+            return 1; // Indicate a successful toggle
         },
         eachGrid(i, button) {button.classList.add('off')},
         afterCreateGrid() {},
